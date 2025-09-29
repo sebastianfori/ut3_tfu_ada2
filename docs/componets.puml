@@ -1,0 +1,57 @@
+@startuml
+skinparam componentStyle rectangle
+skinparam packageStyle rectangle
+
+package "Capa de Presentación (API Gateway)" {
+  [nginx: Reverse Proxy/Load Balancer] as NGINX
+}
+
+package "Capa de Aplicación (Backend – stateless)" {
+  [Modulo Productos] as Productos
+  [Modulo Recetas] as Recetas
+  [Modulo ListasCompras] as Listas
+  [Auth/JWT Middleware] as Auth
+}
+
+package "Capa de Datos" {
+  [PostgreSQL] as PG
+}
+
+NGINX --> Productos : HTTP (REST)
+NGINX --> Recetas : HTTP (REST)
+NGINX --> Listas : HTTP (REST)
+
+Productos ..> PG : SQL (ACID)
+Recetas ..> PG : SQL (ACID)
+Listas ..> PG : SQL (ACID)
+
+Auth .. Productos
+Auth .. Recetas
+Auth .. Listas
+
+note right of Productos
+Interfaces expuestas:
+- GET/POST/PUT/DELETE /products
+- GET /products/{id}
+Dependencias:
+- DBRepository<Product>
+end note
+
+note right of Recetas
+Interfaces expuestas:
+- GET/POST/PUT/DELETE /recipes
+- POST /recipes/{id}/add-to-list
+Dependencias:
+- DBRepository<Recipe>
+- DBRepository<RecipeItem>
+end note
+
+note right of Listas
+Interfaces expuestas:
+- GET/POST/DELETE /shopping-lists
+- POST /shopping-lists/{id}/items
+Dependencias:
+- DBRepository<ShoppingList>
+- DBRepository<ShoppingListItem>
+end note
+@enduml
