@@ -13,14 +13,22 @@ services:
       timeout: 5s
       retries: 20
 
+  cache:  # 🔥 Redis para Cache-Aside
+    image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "no"]
+    ports: []  # solo red interna
+
   api:
     build: ./api
-    environment:
-      DATABASE_URL: postgresql+psycopg2://app:app@db:5432/recipes
     depends_on:
       db:
         condition: service_healthy
-    # 👇 sin puertos en el host (Nginx accede por la red interna)
+      cache:
+        condition: service_started
+    environment:
+      DATABASE_URL: postgresql+psycopg2://app:app@db:5432/recipes
+      REDIS_URL: redis://cache:6379/0
+      API_KEY: supersecreta-UT4  # 🔐 Gatekeeper (podés cambiarla por entorno)
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/"]
       interval: 5s
@@ -35,7 +43,7 @@ services:
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
     ports:
-      - "8080:80"   # ✅ lista con guion
+      - "8080:80"
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost/"]
       interval: 5s

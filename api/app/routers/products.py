@@ -1,50 +1,44 @@
-from fastapi import APIRouter, HTTPException
-from ..db import get_session
-from .. import models, schemas
+from fastapi import APIRouter, HTTPException, Depends
+from app.application.dtos import ProductCreateDTO, ProductDTO
+from app.application.services import ProductService
+from app.infrastructure.unit_of_work import UnitOfWork
+from app.infrastructure.sqlalchemy_repositories import SQLAProductRepository
+from app.security import require_api_key  # 🔐 Gatekeeper
 
 router = APIRouter(prefix="/products", tags=["products"])
 
-@router.post("/", response_model=schemas.ProductOut)
-def create_product(payload: schemas.ProductCreate):
-    with get_session() as db:
-        if db.query(models.Product).filter_by(name=payload.name).first():
-            raise HTTPException(400, detail="Product already exists")
-        p = models.Product(name=payload.name, unit=payload.unit)
-        db.add(p)
-        db.flush()
-        # ✅ Convertir a Pydantic ANTES de cerrar sesión
-        return schemas.ProductOut.model_validate(p)
+def get_product_service():
+    uow = UnitOfWork()
+    repo_factory = lambda session: SQLAProductRepository(session)
+    return ProductService(uow, repo_factory)
 
-@router.get("/", response_model=list[schemas.ProductOut])
-def list_products():
-    with get_session() as db:
-        items = db.query(models.Product).order_by(models.Product.id).all()
-        return [schemas.ProductOut.model_validate(x) for x in items]
+@router.get("/", response_model=list[ProductDTO])
+def list_products(svc: ProductService = Depends(get_product_service)):
+    return svc.list()
 
-@router.get("/{pid}", response_model=schemas.ProductOut)
-def get_product(pid: int):
-    with get_session() as db:
-        p = db.get(models.Product, pid)
-        if not p:
-            raise HTTPException(404, detail="Not found")
-        return schemas.ProductOut.model_validate(p)
+@router.get("/{pid}", response_model=ProductDTO)
+def get_product(pid: int, svc: ProductService = Depends(get_product_service)):
+    try:
+        return svc.get(pid)
+    except LookupError:
+        raise HTTPException(404, detail="Not found")
 
-@router.put("/{pid}", response_model=schemas.ProductOut)
-def update_product(pid: int, payload: schemas.ProductCreate):
-    with get_session() as db:
-        p = db.get(models.Product, pid)
-        if not p:
-            raise HTTPException(404, detail="Not found")
-        p.name = payload.name
-        p.unit = payload.unit
-        db.flush()
-        return schemas.ProductOut.model_validate(p)
+# 🔒 API Key requerida para operaciones de escritura
+@router.post("/", response_model=ProductDTO, dependencies=[Depends(require_api_key)])
+def create_product(payload: ProductCreateDTO, svc: ProductService = Depends(get_product_service)):
+    try:
+        return svc.create(payload)
+    except ValueError as e:
+        raise HTTPException(400, detail=str(e))
 
-@router.delete("/{pid}")
-def delete_product(pid: int):
-    with get_session() as db:
-        p = db.get(models.Product, pid)
-        if not p:
-            raise HTTPException(404, detail="Not found")
-        db.delete(p)
-        return {"ok": True}
+@router.put("/{pid}", response_model=ProductDTO, dependencies=[Depends(require_api_key)])
+def update_product(pid: int, payload: ProductCreateDTO, svc: ProductService = Depends(get_product_service)):
+    try:
+        return svc.update(pid, payload)
+    except LookupError:
+        raise HTTPException(404, detail="Not found")
+
+@router.delete("/{pid}", dependencies=[Depends(require_api_key)])
+def delete_product(pid: int, svc: ProductService = Depends(get_product_service)):
+    svc.delete(pid)
+    return {"ok": True}
