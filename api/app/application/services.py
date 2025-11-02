@@ -21,13 +21,13 @@ class ProductService:
             if repo.exists_by_name(dto.name):
                 raise ValueError("Product already exists")
             created = repo.add(product_from_create(dto))
-            # 🔥 invalidación de cache
+            #  invalidación de cache
             cache_delete("products:list")
             return product_to_dto(created)
 
     @retry_on_db_errors
     def list(self) -> list[ProductDTO]:
-        # 🔥 Cache-Aside: primero intento cache
+        #  Cache-Aside: primero intento cache
         cached = cache_get("products:list")
         if cached:
             return [ProductDTO(**x) for x in cached]
@@ -40,7 +40,7 @@ class ProductService:
 
     @retry_on_db_errors
     def get(self, pid: int) -> ProductDTO:
-        # 🔥 Cache individual
+        # Cache individual
         key = f"products:{pid}"
         cached = cache_get(key)
         if cached:
@@ -62,7 +62,7 @@ class ProductService:
             e = repo.update(pid, product_from_create(dto))
             if not e:
                 raise LookupError("Not found")
-            # 🔥 invalidación de cache
+            #  invalidación de cache
             cache_delete("products:list")
             cache_delete(f"products:{pid}")
             return product_to_dto(e)
@@ -72,7 +72,7 @@ class ProductService:
         with self.uow as u:
             repo: ProductRepository = self.repo_factory(u.session)
             repo.delete(pid)
-            # 🔥 invalidación
+            #  invalidación
             cache_delete("products:list")
             cache_delete(f"products:{pid}")
 
@@ -97,7 +97,7 @@ class RecipeService:
             repo: RecipeRepository = self.repo_factory(u.session)
             created = repo.add(recipe_from_create(dto))
 
-            # 🔥 invalidación
+            #  invalidación
             cache_delete("recipes:list")
             cache_delete(f"recipes:{created.id}")
             return recipe_to_dto(created)

@@ -3,7 +3,7 @@ from app.application.dtos import ProductCreateDTO, ProductDTO
 from app.application.services import ProductService
 from app.infrastructure.unit_of_work import UnitOfWork
 from app.infrastructure.sqlalchemy_repositories import SQLAProductRepository
-from app.security import require_api_key  # 🔐 Gatekeeper
+from app.security import require_api_key  # Gatekeeper
 
 router = APIRouter(prefix="/products", tags=["products"])
 
@@ -23,7 +23,7 @@ def get_product(pid: int, svc: ProductService = Depends(get_product_service)):
     except LookupError:
         raise HTTPException(404, detail="Not found")
 
-# 🔒 API Key requerida para operaciones de escritura
+# API Key para operaciones de escritura
 @router.post("/", response_model=ProductDTO, dependencies=[Depends(require_api_key)])
 def create_product(payload: ProductCreateDTO, svc: ProductService = Depends(get_product_service)):
     try:
