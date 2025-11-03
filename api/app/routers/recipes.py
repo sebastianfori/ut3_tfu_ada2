@@ -3,8 +3,7 @@ from app.application.dtos import RecipeCreateDTO, RecipeDTO
 from app.application.services import RecipeService
 from app.infrastructure.unit_of_work import UnitOfWork
 from app.infrastructure.sqlalchemy_repositories import SQLARecipeRepository, SQLAProductRepository, SQLAShoppingListRepository
-from app.security import require_api_key  #  Gatekeeper
-
+from app.security import require_api_key  
 router = APIRouter(prefix="/recipes", tags=["recipes"])
 
 def get_recipe_service():
@@ -26,7 +25,6 @@ def get_recipe(rid: int, svc: RecipeService = Depends(get_recipe_service)):
     except LookupError:
         raise HTTPException(404, detail="Not found")
 
-#  API Key requerida
 @router.post("/", response_model=RecipeDTO, dependencies=[Depends(require_api_key)])
 def create_recipe(payload: RecipeCreateDTO, svc: RecipeService = Depends(get_recipe_service)):
     try:

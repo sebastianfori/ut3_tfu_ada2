@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from .db import Base, engine
-from .infrastructure import models  # registra tablas
+from .infrastructure import models  
 from .routers import products, recipes, shopping_lists 
 
 Base.metadata.create_all(bind=engine)

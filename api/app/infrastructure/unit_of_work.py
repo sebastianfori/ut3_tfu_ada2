@@ -22,5 +22,4 @@ class UnitOfWork(AbstractContextManager):
                 self.session.commit()
         finally:
             self.session.close()
-        # False => si hubo excepción, que siga propagándose (FastAPI la maneja)
         return False

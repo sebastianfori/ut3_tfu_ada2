@@ -4,7 +4,7 @@ from ..domain.repositories import ProductRepository, RecipeRepository, ShoppingL
 from ..domain.entities import Product, Recipe, RecipeItem, ShoppingList
 from .models import ProductORM, RecipeORM, RecipeItemORM, ShoppingListORM, ShoppingListItemORM
 
-# --- Mappers simples (ORM <-> Dominio) --- #
+
 def to_product_entity(row: ProductORM) -> Product:
     return Product(id=row.id, name=row.name, unit=row.unit)
 
