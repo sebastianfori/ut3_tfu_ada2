@@ -21,8 +21,12 @@ def recipe_to_dto(e: Recipe) -> RecipeDTO:
         items=[RecipeItemDTO(product_id=i.product_id, quantity=i.quantity) for i in e.items]
     )
 
-def shoppinglist_from_create(dto: ShoppingListCreateDTO) -> ShoppingList:
+
+def shopping_list_from_create(dto: ShoppingListCreateDTO) -> ShoppingList:
     return ShoppingList(id=None, name=dto.name)
 
-def shoppinglist_to_dto(e: ShoppingList) -> ShoppingListDTO:
+def shopping_list_to_dto(e: ShoppingList) -> ShoppingListDTO:
     return ShoppingListDTO(id=e.id, name=e.name)
+
+shoppinglist_from_create = shopping_list_from_create
+shoppinglist_to_dto = shopping_list_to_dto

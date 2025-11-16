@@ -3,7 +3,6 @@ from .mappers import *
 from ..domain.repositories import ProductRepository, RecipeRepository, ShoppingListRepository
 from ..infrastructure.unit_of_work import UnitOfWork
 from .decorators import retry_on_db_errors
-from .cache import cache_get, cache_set, cache_delete
 
 
 # --------------------------------------------------------------------
@@ -21,38 +20,23 @@ class ProductService:
             if repo.exists_by_name(dto.name):
                 raise ValueError("Product already exists")
             created = repo.add(product_from_create(dto))
-            #  invalidación de cache
-            cache_delete("products:list")
             return product_to_dto(created)
 
     @retry_on_db_errors
     def list(self) -> list[ProductDTO]:
-        #  Cache-Aside: primero intento cache
-        cached = cache_get("products:list")
-        if cached:
-            return [ProductDTO(**x) for x in cached]
-
         with self.uow as u:
             repo: ProductRepository = self.repo_factory(u.session)
             data = [product_to_dto(x) for x in repo.list()]
-            cache_set("products:list", [x.model_dump() for x in data], ttl_seconds=60)
             return data
 
     @retry_on_db_errors
     def get(self, pid: int) -> ProductDTO:
-        # Cache individual
-        key = f"products:{pid}"
-        cached = cache_get(key)
-        if cached:
-            return ProductDTO(**cached)
-
         with self.uow as u:
             repo: ProductRepository = self.repo_factory(u.session)
             e = repo.get(pid)
             if not e:
                 raise LookupError("Not found")
             dto = product_to_dto(e)
-            cache_set(key, dto.model_dump(), ttl_seconds=60)
             return dto
 
     @retry_on_db_errors
@@ -62,9 +46,6 @@ class ProductService:
             e = repo.update(pid, product_from_create(dto))
             if not e:
                 raise LookupError("Not found")
-            #  invalidación de cache
-            cache_delete("products:list")
-            cache_delete(f"products:{pid}")
             return product_to_dto(e)
 
     @retry_on_db_errors
@@ -72,9 +53,6 @@ class ProductService:
         with self.uow as u:
             repo: ProductRepository = self.repo_factory(u.session)
             repo.delete(pid)
-            #  invalidación
-            cache_delete("products:list")
-            cache_delete(f"products:{pid}")
 
 
 # --------------------------------------------------------------------
@@ -96,38 +74,23 @@ class RecipeService:
 
             repo: RecipeRepository = self.repo_factory(u.session)
             created = repo.add(recipe_from_create(dto))
-
-            #  invalidación
-            cache_delete("recipes:list")
-            cache_delete(f"recipes:{created.id}")
             return recipe_to_dto(created)
 
     @retry_on_db_errors
     def list(self) -> list[RecipeDTO]:
-        cached = cache_get("recipes:list")
-        if cached:
-            return [RecipeDTO(**x) for x in cached]
-
         with self.uow as u:
             repo: RecipeRepository = self.repo_factory(u.session)
             data = [recipe_to_dto(r) for r in repo.list()]
-            cache_set("recipes:list", [x.model_dump() for x in data], 60)
             return data
 
     @retry_on_db_errors
     def get(self, rid: int) -> RecipeDTO:
-        key = f"recipes:{rid}"
-        cached = cache_get(key)
-        if cached:
-            return RecipeDTO(**cached)
-
         with self.uow as u:
             repo: RecipeRepository = self.repo_factory(u.session)
             e = repo.get(rid)
             if not e:
                 raise LookupError("Not found")
             dto = recipe_to_dto(e)
-            cache_set(key, dto.model_dump(), ttl_seconds=60)
             return dto
 
     @retry_on_db_errors
@@ -149,7 +112,6 @@ class RecipeService:
             if fail:
                 raise RuntimeError("Forced failure to demonstrate ACID rollback")
 
-            cache_delete("recipes:list")
             return {"ok": True, "list_id": list_id, "recipe_id": rid}
 
     def _shopping_repo(self, u):
@@ -172,17 +134,11 @@ class ShoppingListService:
         with self.uow as u:
             repo: ShoppingListRepository = self.repo_factory(u.session)
             created = repo.add(shopping_list_from_create(dto))
-            cache_delete("shopping_lists:list")
             return shopping_list_to_dto(created)
 
     @retry_on_db_errors
     def list(self) -> list[ShoppingListDTO]:
-        cached = cache_get("shopping_lists:list")
-        if cached:
-            return [ShoppingListDTO(**x) for x in cached]
-
         with self.uow as u:
             repo: ShoppingListRepository = self.repo_factory(u.session)
             data = [shopping_list_to_dto(r) for r in repo.list()]
-            cache_set("shopping_lists:list", [x.model_dump() for x in data], 60)
             return data

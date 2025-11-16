@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
-BASE="http://localhost:8080"
+BASE="http://localhost:8000"
 
 echo "== Crear productos =="
 curl -sS -X POST "$BASE/products/" -H 'Content-Type: application/json' -d '{"name":"Harina","unit":"g"}'
