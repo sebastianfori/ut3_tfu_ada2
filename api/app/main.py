@@ -1,7 +1,8 @@
 from fastapi import FastAPI
 from .db import Base, engine
 from .infrastructure import models  
-from .routers import products, recipes, shopping_lists 
+from .routers import products, recipes, shopping_lists, soap
+ 
 
 Base.metadata.create_all(bind=engine)
 
@@ -14,3 +15,4 @@ def root():
 app.include_router(products.router)
 app.include_router(recipes.router)
 app.include_router(shopping_lists.router)
+app.include_router(soap.router)

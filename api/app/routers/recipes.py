@@ -31,3 +31,19 @@ def create_recipe(payload: RecipeCreateDTO, svc: RecipeService = Depends(get_rec
         return svc.create(payload)
     except ValueError as e:
         raise HTTPException(400, detail=str(e))
+# ⬇️⬇️ NUEVO ENDPOINT PARA ACID / ADD-TO-LIST ⬇️⬇️
+@router.post("/{rid}/add-to-list")
+def add_recipe_to_list(
+    rid: int,
+    list_id: int,
+    fail: bool = False,
+    svc: RecipeService = Depends(get_recipe_service),
+):
+    try:
+        return svc.add_recipe_to_list(rid, list_id, fail)
+    except LookupError as e:
+        # Recipe or List not found
+        raise HTTPException(status_code=404, detail=str(e))
+    except RuntimeError as e:
+        # fallos forzados para demostrar rollback
+        raise HTTPException(status_code=500, detail=str(e))
